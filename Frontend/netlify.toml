@@ -13,5 +13,6 @@
   [headers.values]
     Cache-Control = "no-cache"
 
-[context.production.environment]
-  VITE_API_BASE_URL = "https://carrerlens-production.up.railway.app"
+[env]
+  [env.production]
+    VITE_API_BASE_URL = "https://carrerlens-production.up.railway.app"

@@ -28,7 +28,7 @@ def main() -> None:
     init_database()
     jobs = load_jobs_file()
     imported_count = import_jobs(jobs)
-    print(f"Imported {imported_count} jobs into PostgreSQL from {JOBS_FILE}.")
+    print(f"Imported or updated {imported_count} jobs into PostgreSQL from {JOBS_FILE}.")
 
 
 if __name__ == "__main__":
