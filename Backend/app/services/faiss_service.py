@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +11,6 @@ from .embedding_service import generate_embedding
 from .job_mapping_service import ensure_job_mapping
 
 
-logger = logging.getLogger(__name__)
-
 INDEX_FILE = Path(__file__).resolve().parents[2] / "data" / "jobs" / "jobs.index"
 INDEX_META_FILE = INDEX_FILE.with_suffix(".index.meta.json")
 
@@ -23,31 +20,6 @@ _INDEX_CACHE: dict[str, Any] = {
     "jobs": None,
     "embeddings": None,
 }
-
-
-def _flush_logs() -> None:
-    for handler in logger.handlers:
-        try:
-            handler.flush()
-        except Exception:
-            pass
-
-    root_logger = logging.getLogger()
-    if root_logger is logger:
-        return
-
-    for handler in root_logger.handlers:
-        try:
-            handler.flush()
-        except Exception:
-            pass
-
-
-def _emit(message: str, *args: object) -> None:
-    formatted = message % args if args else message
-    print(formatted, flush=True)
-    logger.info(message, *args)
-    _flush_logs()
 
 
 def _normalize_embeddings(embeddings: np.ndarray) -> np.ndarray:
@@ -71,7 +43,6 @@ def _jobs_signature(jobs: list[dict]) -> tuple[tuple[Any, ...], ...]:
 
 
 def _build_embedding_matrix(jobs: list[dict]) -> np.ndarray:
-    _emit("Generating embeddings for jobs. count=%s", len(jobs))
     embeddings = [
         generate_embedding(job.get("description", ""))
         for job in jobs
@@ -92,21 +63,14 @@ def _load_index_from_disk(
     signature: tuple[tuple[Any, ...], ...],
 ) -> dict[str, Any] | None:
     if not INDEX_FILE.exists() or not INDEX_META_FILE.exists():
-        _emit(
-            "FAISS disk cache unavailable. index_exists=%s meta_exists=%s",
-            INDEX_FILE.exists(),
-            INDEX_META_FILE.exists(),
-        )
         return None
 
     try:
         metadata = json.loads(INDEX_META_FILE.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        _emit("FAISS disk metadata could not be read. path=%s", INDEX_META_FILE)
         return None
 
     if metadata.get("metric") != "ip" or not metadata.get("normalized", False):
-        _emit("FAISS disk metadata rejected. metric=%s normalized=%s", metadata.get("metric"), metadata.get("normalized", False))
         return None
 
     stored_signature = tuple(
@@ -114,28 +78,16 @@ def _load_index_from_disk(
     )
 
     if stored_signature != signature:
-        _emit(
-            "FAISS disk signature mismatch. stored=%s current=%s",
-            len(stored_signature),
-            len(signature),
-        )
         return None
 
     try:
         index = faiss.read_index(str(INDEX_FILE))
     except RuntimeError:
-        _emit("FAISS disk index could not be read. path=%s", INDEX_FILE)
         return None
 
     if index.ntotal != len(jobs):
-        _emit(
-            "FAISS disk vector count mismatch. index_ntotal=%s jobs=%s",
-            index.ntotal,
-            len(jobs),
-        )
         return None
 
-    _emit("FAISS disk index loaded successfully. vectors=%s", index.ntotal)
     _INDEX_CACHE["signature"] = signature
     _INDEX_CACHE["index"] = index
     _INDEX_CACHE["jobs"] = jobs
@@ -169,14 +121,12 @@ def _save_index_to_disk(
         ),
         encoding="utf-8",
     )
-    _emit("FAISS disk index saved. vectors=%s path=%s", index.ntotal, INDEX_FILE)
 
 
 def build_faiss_index(jobs: list[dict]) -> dict[str, Any]:
     signature = _jobs_signature(jobs)
 
     if _INDEX_CACHE["signature"] == signature:
-        _emit("FAISS in-memory cache hit. jobs=%s", len(jobs))
         return {
             "index": _INDEX_CACHE["index"],
             "jobs": _INDEX_CACHE["jobs"],
@@ -187,23 +137,15 @@ def build_faiss_index(jobs: list[dict]) -> dict[str, Any]:
     if disk_bundle is not None:
         return disk_bundle
 
-    _emit("FAISS rebuild starting. jobs=%s", len(jobs))
     embedding_matrix = _build_embedding_matrix(jobs)
 
     if embedding_matrix.size == 0:
-        _emit("FAISS rebuild produced empty embedding matrix.")
         index = None
     else:
         embedding_matrix = _normalize_embeddings(embedding_matrix)
         dimension = embedding_matrix.shape[1]
-        _emit(
-            "FAISS normalized embeddings ready. rows=%s dimension=%s",
-            embedding_matrix.shape[0],
-            dimension,
-        )
         index = faiss.IndexFlatIP(dimension)
         index.add(embedding_matrix)
-        _emit("FAISS index populated. vectors=%s", index.ntotal)
         _save_index_to_disk(index=index, signature=signature)
 
     _INDEX_CACHE["signature"] = signature

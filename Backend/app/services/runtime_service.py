@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from threading import Event, Thread
 from time import perf_counter
 
 from fastapi import HTTPException
@@ -13,62 +12,6 @@ from .recommendation_service import load_jobs
 
 
 logger = logging.getLogger(__name__)
-
-
-def _flush_logs() -> None:
-    for handler in logger.handlers:
-        try:
-            handler.flush()
-        except Exception:
-            pass
-
-    root_logger = logging.getLogger()
-    if root_logger is logger:
-        return
-
-    for handler in root_logger.handlers:
-        try:
-            handler.flush()
-        except Exception:
-            pass
-
-
-def _emit(message: str, *args: object) -> None:
-    formatted = message % args if args else message
-    print(formatted, flush=True)
-    logger.info(message, *args)
-    _flush_logs()
-
-
-def _emit_exception(message: str, *args: object) -> None:
-    formatted = message % args if args else message
-    print(formatted, flush=True)
-    logger.exception(message, *args)
-    _flush_logs()
-
-
-class _StageHeartbeat:
-    def __init__(self, stage: str, started_at: float) -> None:
-        self._stage = stage
-        self._started_at = started_at
-        self._stop_event = Event()
-        self._thread = Thread(target=self._run, daemon=True)
-
-    def start(self) -> None:
-        self._thread.start()
-
-    def stop(self) -> None:
-        self._stop_event.set()
-        self._thread.join(timeout=0.1)
-
-    def _run(self) -> None:
-        while not self._stop_event.wait(timeout=5):
-            elapsed = perf_counter() - self._started_at
-            _emit(
-                "Warmup stage still running. stage=%s elapsed=%.2fs",
-                self._stage,
-                elapsed,
-            )
 
 
 def _log_startup_summary(
@@ -89,7 +32,7 @@ def _log_startup_summary(
     ]
     if reason:
         lines.append(f"Reason: {reason}")
-    _emit("\n".join(lines))
+    logger.info("\n".join(lines))
 
 
 def warmup_backend_dependencies() -> None:
@@ -98,26 +41,20 @@ def warmup_backend_dependencies() -> None:
     jobs_loaded = 0
     faiss_ready = False
 
-    _emit("Warmup thread started. stage=warmup")
-
+    logger.info("Starting database initialization... stage=database")
     database_started_at = perf_counter()
-    database_heartbeat = _StageHeartbeat("database", database_started_at)
-    _emit("Before init_database(). stage=database")
-    _emit("Starting database initialization... stage=database")
-    database_heartbeat.start()
     try:
         init_database()
-        _emit("After init_database(). stage=database")
         database_elapsed = perf_counter() - database_started_at
         backend_runtime_state.mark_database_ready()
         database_ready = True
-        _emit(
+        logger.info(
             "Database initialized successfully. stage=database elapsed=%.2fs",
             database_elapsed,
         )
     except Exception as exc:
         database_elapsed = perf_counter() - database_started_at
-        _emit_exception(
+        logger.exception(
             "Warmup stage failed. stage=database elapsed=%.2fs",
             database_elapsed,
         )
@@ -133,29 +70,23 @@ def warmup_backend_dependencies() -> None:
             reason=str(exc) or exc.__class__.__name__,
         )
         return
-    finally:
-        database_heartbeat.stop()
 
+    logger.info("Loading jobs... stage=jobs")
     jobs_started_at = perf_counter()
-    jobs_heartbeat = _StageHeartbeat("jobs", jobs_started_at)
-    _emit("Before load_jobs(). stage=jobs")
-    _emit("Loading jobs... stage=jobs")
-    jobs_heartbeat.start()
     try:
         jobs = load_jobs()
-        _emit("After load_jobs(). stage=jobs")
         jobs_elapsed = perf_counter() - jobs_started_at
         jobs_loaded = len(jobs)
         if jobs_loaded == 0:
             raise RuntimeError("No jobs found in database. Backend cannot become ready.")
-        _emit(
+        logger.info(
             "Jobs loaded successfully. stage=jobs count=%s elapsed=%.2fs",
             jobs_loaded,
             jobs_elapsed,
         )
     except Exception as exc:
         jobs_elapsed = perf_counter() - jobs_started_at
-        _emit_exception(
+        logger.exception(
             "Warmup stage failed. stage=jobs elapsed=%.2fs",
             jobs_elapsed,
         )
@@ -172,21 +103,15 @@ def warmup_backend_dependencies() -> None:
             reason=str(exc) or exc.__class__.__name__,
         )
         return
-    finally:
-        jobs_heartbeat.stop()
 
+    logger.info("Building FAISS index... stage=faiss")
     faiss_started_at = perf_counter()
-    faiss_heartbeat = _StageHeartbeat("faiss", faiss_started_at)
-    _emit("Before ensure_faiss_index(). stage=faiss")
-    _emit("Building FAISS index... stage=faiss")
-    faiss_heartbeat.start()
     try:
         ensure_faiss_index(jobs)
-        _emit("After ensure_faiss_index(). stage=faiss")
         faiss_elapsed = perf_counter() - faiss_started_at
         backend_runtime_state.mark_index_ready(len(jobs))
         faiss_ready = True
-        _emit(
+        logger.info(
             "FAISS index built successfully. stage=faiss elapsed=%.2fs",
             faiss_elapsed,
         )
@@ -198,11 +123,9 @@ def warmup_backend_dependencies() -> None:
         if not faiss_ready:
             raise RuntimeError("FAISS index validation did not complete. Backend cannot become ready.")
 
-        _emit("Before mark_ready(). stage=warmup")
         backend_runtime_state.mark_ready()
-        _emit("After mark_ready(). stage=warmup")
         warmup_elapsed = perf_counter() - warmup_started_at
-        _emit(
+        logger.info(
             "Backend marked READY. stage=warmup elapsed=%.2fs",
             warmup_elapsed,
         )
@@ -214,7 +137,7 @@ def warmup_backend_dependencies() -> None:
         )
     except Exception as exc:
         faiss_elapsed = perf_counter() - faiss_started_at
-        _emit_exception(
+        logger.exception(
             "Warmup stage failed. stage=faiss elapsed=%.2fs",
             faiss_elapsed,
         )
@@ -230,8 +153,6 @@ def warmup_backend_dependencies() -> None:
             backend_ready=False,
             reason=str(exc) or exc.__class__.__name__,
         )
-    finally:
-        faiss_heartbeat.stop()
 
 
 def trigger_backend_warmup() -> None:

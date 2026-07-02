@@ -14,6 +14,7 @@ Frontend/.env
 Frontend/.env.*
 
 # Generated data and runtime artifacts
+data/
 data/uploads/
 Backend/data/uploads/*
 !Backend/data/uploads/.gitkeep
@@ -21,11 +22,14 @@ Backend/data/resumes/
 data/raw/
 Backend/data/jobs/*.index
 Backend/data/jobs/*.meta.json
+!Backend/data/
+!Backend/data/jobs/
+!Backend/data/jobs/jobs.index
+!Backend/data/jobs/jobs.index.meta.json
 Backend/data/jobs/*.log
 Backend/hf_cache/
 Backend/.pytest_cache/
 Backend/.mypy_cache/
-data/
 
 # Frontend dependencies and build output
 Frontend/node_modules/
@@ -60,4 +64,3 @@ dist/
 node_modules/.cache/
 Frontend/.pnp
 Frontend/.yarn/
-
