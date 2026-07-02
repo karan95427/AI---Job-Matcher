@@ -55,6 +55,10 @@ class BackendRuntimeState:
 
     def mark_ready(self) -> None:
         with self._lock:
+            if not self._db_ready or not self._index_ready:
+                raise RuntimeError(
+                    "Cannot mark backend ready before database and index are ready."
+                )
             self._warmup_in_progress = False
             self._warmup_completed_at = _utc_now()
             self._last_error = None

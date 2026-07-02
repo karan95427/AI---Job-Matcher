@@ -160,6 +160,23 @@ def build_faiss_index(jobs: list[dict]) -> dict[str, Any]:
     }
 
 
+def _validate_faiss_bundle(bundle: dict[str, Any], jobs: list[dict]) -> None:
+    if not jobs:
+        raise RuntimeError("No jobs found in database. Backend cannot become ready.")
+
+    embeddings = bundle.get("embeddings")
+    if embeddings is not None and getattr(embeddings, "size", 0) == 0:
+        raise RuntimeError("FAISS embeddings are empty. Backend cannot become ready.")
+    if embeddings is not None and getattr(embeddings, "shape", (0,))[0] == 0:
+        raise RuntimeError("FAISS embeddings are empty. Backend cannot become ready.")
+
+    index = bundle.get("index")
+    if index is None:
+        raise RuntimeError("FAISS index was not built. Backend cannot become ready.")
+    if getattr(index, "ntotal", 0) <= 0:
+        raise RuntimeError("FAISS index has no vectors. Backend cannot become ready.")
+
+
 def search_similar_jobs(
     resume_embedding: list[float],
     jobs: list[dict],
@@ -227,4 +244,6 @@ def retrieve_top_job_ids(
 
 
 def ensure_faiss_index(jobs: list[dict]) -> dict[str, Any]:
-    return build_faiss_index(jobs)
+    bundle = build_faiss_index(jobs)
+    _validate_faiss_bundle(bundle, jobs)
+    return bundle

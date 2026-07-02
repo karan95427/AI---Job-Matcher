@@ -77,6 +77,8 @@ def warmup_backend_dependencies() -> None:
         jobs = load_jobs()
         jobs_elapsed = perf_counter() - jobs_started_at
         jobs_loaded = len(jobs)
+        if jobs_loaded == 0:
+            raise RuntimeError("No jobs found in database. Backend cannot become ready.")
         logger.info(
             "Jobs loaded successfully. stage=jobs count=%s elapsed=%.2fs",
             jobs_loaded,
@@ -113,6 +115,13 @@ def warmup_backend_dependencies() -> None:
             "FAISS index built successfully. stage=faiss elapsed=%.2fs",
             faiss_elapsed,
         )
+
+        if not database_ready:
+            raise RuntimeError("Database initialization did not complete. Backend cannot become ready.")
+        if jobs_loaded <= 0:
+            raise RuntimeError("No jobs found in database. Backend cannot become ready.")
+        if not faiss_ready:
+            raise RuntimeError("FAISS index validation did not complete. Backend cannot become ready.")
 
         backend_runtime_state.mark_ready()
         warmup_elapsed = perf_counter() - warmup_started_at

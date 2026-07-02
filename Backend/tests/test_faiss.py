@@ -210,6 +210,62 @@ class FaissPersistenceTests(unittest.TestCase):
             ],
         )
 
+    def test_ensure_faiss_index_raises_for_zero_jobs(self) -> None:
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "No jobs found in database. Backend cannot become ready.",
+        ):
+            self.faiss_service.ensure_faiss_index([])
+
+    def test_ensure_faiss_index_raises_for_empty_embeddings(self) -> None:
+        with patch.object(
+            self.faiss_service,
+            "build_faiss_index",
+            return_value={
+                "index": None,
+                "jobs": self.jobs,
+                "embeddings": np.empty((0, 0), dtype="float32"),
+            },
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "FAISS embeddings are empty. Backend cannot become ready.",
+            ):
+                self.faiss_service.ensure_faiss_index(self.jobs)
+
+    def test_ensure_faiss_index_raises_for_missing_index(self) -> None:
+        with patch.object(
+            self.faiss_service,
+            "build_faiss_index",
+            return_value={
+                "index": None,
+                "jobs": self.jobs,
+                "embeddings": np.ones((2, 3), dtype="float32"),
+            },
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "FAISS index was not built. Backend cannot become ready.",
+            ):
+                self.faiss_service.ensure_faiss_index(self.jobs)
+
+    def test_ensure_faiss_index_raises_for_zero_vectors(self) -> None:
+        index = faiss.IndexFlatIP(3)
+        with patch.object(
+            self.faiss_service,
+            "build_faiss_index",
+            return_value={
+                "index": index,
+                "jobs": self.jobs,
+                "embeddings": np.ones((2, 3), dtype="float32"),
+            },
+        ):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "FAISS index has no vectors. Backend cannot become ready.",
+            ):
+                self.faiss_service.ensure_faiss_index(self.jobs)
+
 
 if __name__ == "__main__":
     unittest.main()
