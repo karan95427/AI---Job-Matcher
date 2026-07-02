@@ -80,13 +80,33 @@ interface BackendRecommendationResponse {
   recommendations: BackendRecommendation[];
 }
 
-const API_BASE =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://127.0.0.1:8000";
+const LOCAL_API_BASE = "http://127.0.0.1:8000";
 const DEFAULT_UPLOAD_TIMEOUT_MS = 90_000;
 const DEFAULT_READINESS_TIMEOUT_MS = 60_000;
 const READINESS_REQUEST_TIMEOUT_MS = 30_000;
 const READINESS_POLL_INTERVAL_MS = 1_500;
+
+function normalizeApiBase(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.replace(/\/$/, "") : undefined;
+}
+
+function resolveApiBase() {
+  const configuredApiBase = normalizeApiBase(import.meta.env.VITE_API_BASE_URL as string | undefined);
+  if (configuredApiBase) {
+    return configuredApiBase;
+  }
+
+  if (import.meta.env.DEV) {
+    return LOCAL_API_BASE;
+  }
+
+  throw new Error(
+    "VITE_API_BASE_URL must be set for production builds. Localhost fallback is disabled outside development.",
+  );
+}
+
+const API_BASE = resolveApiBase();
 
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
@@ -124,11 +144,11 @@ export async function getBackendReadiness(
   } catch (error) {
     if (isAbortError(error)) {
       throw new Error(
-        "The readiness check timed out. The backend may be unreachable even if it appears to be running.",
+        `The readiness check timed out while contacting ${API_BASE}. The backend may be unreachable even if it appears to be running.`,
       );
     }
     throw new Error(
-      "The frontend could not reach the backend readiness endpoint. Check that the API is running on http://127.0.0.1:8000.",
+      `The frontend could not reach the backend readiness endpoint at ${API_BASE}. Check that VITE_API_BASE_URL is correct and the API is reachable.`,
     );
   } finally {
     window.clearTimeout(timeout);
