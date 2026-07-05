@@ -1,190 +1,316 @@
-# CareerLens – Semantic Resume Intelligence & Job Recommendation Engine
+# CareerLens – AI Resume Intelligence & RAG Job Recommendation Platform
 
-CareerLens is an AI-powered Resume Intelligence and Job Recommendation System that moves beyond traditional keyword matching by leveraging transformer embeddings, semantic search, vector databases, and hybrid ranking techniques.
+CareerLens is a production-ready AI application that intelligently matches resumes with relevant job opportunities using semantic search, Retrieval-Augmented Generation (RAG), transformer embeddings, vector search, and Large Language Models.
 
-The platform analyzes resumes, extracts skills, understands candidate profiles semantically, and recommends the most relevant job opportunities using intelligent retrieval and ranking pipelines.
-
----
-
-## Features
-
-### Resume Parsing
-
-* Upload PDF resumes
-* Extract structured resume content
-* Process candidate information for downstream analysis
-
-### Semantic Skill Understanding
-
-* Generate contextual embeddings using Sentence Transformers
-* Capture semantic relationships between skills and job requirements
-* Go beyond exact keyword matching
-
-### Vector Search with FAISS
-
-* Store job embeddings efficiently
-* Perform fast Top-K semantic retrieval
-* Scale recommendation performance for large job datasets
-
-### Hybrid Recommendation Engine
-
-Combines:
-
-* Semantic Similarity Scoring
-* Skill Overlap Analysis
-* Retrieval + Reranking Architecture
-
-This improves recommendation quality compared to embedding-only approaches.
-
-### Intelligent Job Recommendations
-
-* Match resumes with relevant jobs
-* Rank opportunities based on semantic relevance
-* Generate personalized recommendations
-
-### FastAPI Backend
-
-Modular backend architecture including:
-
-* Resume Parsing Service
-* Embedding Service
-* Retrieval Service
-* Recommendation Engine
-* Skill Analysis Service
+Instead of relying on keyword matching, CareerLens understands resumes and job descriptions semantically, retrieves the most relevant opportunities using FAISS vector search, and leverages the OpenAI API to generate personalized explanations and career recommendations.
 
 ---
 
-## System Architecture
+# Live Demo
 
-Resume PDF
-↓
-Resume Parsing
-↓
-Skill Extraction
-↓
-Sentence Transformer Embeddings
-↓
-FAISS Vector Search (Top-K Retrieval)
-↓
-Hybrid Ranking Engine
-↓
-Final Job Recommendations
+Frontend:
+https://YOUR_NETLIFY_URL
+
+Backend API:
+https://YOUR_RAILWAY_URL/docs
 
 ---
 
-## Tech Stack
+# Features
 
-### Backend
+## Semantic Resume Analysis
 
-* FastAPI
-* Python
-
-### AI / Machine Learning
-
-* Sentence Transformers
-* Hugging Face Models
-* Scikit-learn
-* NumPy
-* Pandas
-
-### Vector Search
-
-* FAISS
-
-### Data Processing
-
-* PDF Parsing
-* Text Processing
-* Semantic Embeddings
+- Upload PDF resumes
+- Extract structured resume information
+- Detect technical skills
+- Understand candidate profiles using transformer embeddings
 
 ---
 
-## Project Structure
+## Semantic Job Retrieval
 
-```bash
+- Generate dense embeddings using Sentence Transformers
+- Store job embeddings in FAISS
+- Perform Top-K semantic retrieval
+- Retrieve jobs based on meaning rather than keyword overlap
+
+---
+
+## Retrieval-Augmented Generation (RAG)
+
+CareerLens implements a RAG pipeline:
+
+Resume
+→ Embedding Generation
+→ FAISS Retrieval
+→ Hybrid Ranking
+→ OpenAI LLM
+→ Personalized Career Recommendation
+
+The retrieved jobs are provided as context to the LLM, enabling grounded and explainable recommendations instead of generic responses.
+
+---
+
+## Hybrid Ranking Engine
+
+Recommendations combine multiple signals:
+
+- Semantic Similarity
+- Skill Overlap Analysis
+- Retrieval Score
+- Combined Relevance Ranking
+
+This improves recommendation quality beyond embedding-only approaches.
+
+---
+
+## AI Recommendation Engine
+
+The system generates:
+
+- Personalized career summaries
+- Job fit explanations
+- Skill gap insights
+- Resume improvement suggestions
+- Explainable recommendation reasoning
+
+using OpenAI's GPT models.
+
+---
+
+## Production Deployment
+
+Backend
+
+- FastAPI
+- Railway
+
+Frontend
+
+- React
+- Vite
+- Netlify
+
+Deployment Features
+
+- Git-based automatic deployment
+- Environment-based configuration
+- Production CORS configuration
+- Health & Readiness endpoints
+- Production API documentation
+
+---
+
+# System Architecture
+
+```
+                    Resume PDF
+                         │
+                         ▼
+                 PDF Text Extraction
+                         │
+                         ▼
+                 Skill Extraction
+                         │
+                         ▼
+          Sentence Transformer Embeddings
+                         │
+                         ▼
+                FAISS Vector Search
+                 (Top-K Retrieval)
+                         │
+                         ▼
+               Hybrid Ranking Engine
+                         │
+                         ▼
+           Retrieved Job Descriptions
+                         │
+                         ▼
+              OpenAI GPT Recommendation
+                         │
+                         ▼
+         Personalized Career Suggestions
+```
+
+---
+
+# Tech Stack
+
+## Backend
+
+- FastAPI
+- Python
+
+## AI / Machine Learning
+
+- Sentence Transformers
+- OpenAI API
+- Hugging Face
+- FAISS
+- Scikit-learn
+- NumPy
+- Pandas
+
+## Database
+
+- PostgreSQL
+
+## Frontend
+
+- React
+- TypeScript
+- Vite
+
+## Deployment
+
+- Railway
+- Netlify
+- GitHub
+
+---
+
+# Project Structure
+
+```text
 CareerLens/
 │
-├── app/
-│   ├── api/
-│   ├── services/
-│   ├── models/
-│   ├── utils/
-│   └── data/
+├── Backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── services/
+│   │   ├── models/
+│   │   ├── utils/
+│   │   ├── core/
+│   │   └── data/
+│   │
+│   ├── hf_cache/
+│   ├── requirements.txt
+│   └── main.py
 │
-├── hf_cache/
-├── requirements.txt
-├── main.py
+├── Frontend/
+│
 └── README.md
 ```
 
-## How It Works
+---
 
-### Step 1: Resume Upload
+# Application Workflow
 
-The user uploads a PDF resume.
+### 1. Resume Upload
 
-### Step 2: Resume Analysis
+Users upload their PDF resume.
 
-The system extracts text and identifies technical skills and candidate information.
+↓
 
-### Step 3: Embedding Generation
+### 2. Resume Parsing
 
-Resume content is converted into dense vector representations using transformer models.
+The system extracts structured text and candidate information.
 
-### Step 4: Semantic Retrieval
+↓
 
-FAISS retrieves the most semantically relevant jobs from the job database.
+### 3. Embedding Generation
 
-### Step 5: Hybrid Ranking
+Sentence Transformers convert resume text into dense semantic vectors.
 
-Retrieved jobs are reranked using:
+↓
 
-* Semantic Similarity
-* Skill Match Score
-* Combined Relevance Metrics
+### 4. Vector Retrieval
 
-### Step 6: Recommendations
+FAISS retrieves the Top-K most relevant job descriptions.
 
-The highest-ranking opportunities are returned to the user.
+↓
+
+### 5. Hybrid Ranking
+
+Jobs are reranked using:
+
+- Semantic similarity
+- Skill overlap
+- Combined relevance score
+
+↓
+
+### 6. RAG Generation
+
+Retrieved jobs are supplied to the OpenAI model as grounding context.
+
+The LLM generates:
+
+- Personalized career advice
+- Job-fit explanations
+- Skill gap analysis
+- Resume recommendations
+
+↓
+
+### 7. Final Recommendations
+
+The highest-quality recommendations are returned to the user.
 
 ---
 
-## Key Learnings
+# Performance
 
-Through this project I explored:
+Performance was validated using **k6**.
 
-* Semantic Search Systems
-* Recommendation Engines
-* Retrieval & Reranking Architectures
-* Vector Databases
-* Transformer Embeddings
-* FastAPI Backend Development
-* Production-Oriented AI System Design
-
----
-
-## Future Improvements
-
-* LLM-powered resume feedback
-* Skill gap analysis
-* Resume optimization suggestions
-* Job market trend analysis
-* Interview preparation recommendations
-* Hybrid retrieval with metadata filtering
-* User authentication and profile management
+| Metric | Result |
+|---------|--------|
+| Concurrent Virtual Users | 100 |
+| Average Latency | 95 ms |
+| P95 Latency | 116 ms |
+| Throughput | ~88 requests/sec |
+| Failed Requests | 0% |
 
 ---
 
-## Results
+# Key Learnings
 
-* Replaced traditional keyword matching with semantic understanding
-* Improved recommendation relevance using hybrid ranking
-* Reduced retrieval latency through FAISS Top-K search
-* Built a modular and scalable AI backend architecture
+This project provided hands-on experience with:
+
+- Retrieval-Augmented Generation (RAG)
+- Semantic Search
+- Vector Databases
+- Transformer Embeddings
+- Large Language Model Integration
+- FastAPI
+- Backend System Design
+- Production Deployment
+- Performance Benchmarking
+- CORS Configuration
+- Environment-based Configuration
+- API Design
 
 ---
 
-## Author
+# Future Improvements
 
-Karan Shihire
+- Multi-model LLM support
+- Conversation memory
+- Resume versioning
+- Authentication
+- User dashboards
+- Job bookmarking
+- Interview preparation
+- Skill roadmap generation
+- Metadata filtering
+- Redis caching
+- Streaming LLM responses
 
+---
+
+# Results
+
+- Replaced keyword matching with semantic retrieval
+- Built a production-ready RAG application
+- Integrated OpenAI for grounded recommendation generation
+- Deployed backend on Railway and frontend on Netlify
+- Achieved ~88 requests/sec with 100 concurrent virtual users during k6 benchmarking
+- Designed a modular FastAPI architecture for maintainability and scalability
+
+---
+
+# Author
+
+**Karan Shihire**
+
+AI Engineer | Applied AI | Semantic Search | RAG | FastAPI
